@@ -72,6 +72,18 @@ def kernel(x, centroid):
 # (b) POLYNOMIAL EXTENSION
 # ------------------------------------------------------------------------------------------------------------------
 
+def build_poly_standard(x, degree):
+    
+    powers = []
+    
+    for col in x.T:
+    
+      for j in range(0, degree+1):
+        
+        powers.append((col ** j).reshape(-1,1)) 
+        
+    return np.concatenate(powers,axis=1)
+
 def build_poly(x, degree, functions, centroids):
     """polynomial basis functions for input data x, for j=0 up to j=degree.
         also applies functions
