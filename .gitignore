@@ -1,7 +1,6 @@
-/project1/data/*
+**data/
+**.ipynb_checkpoints/
+**.DS_Store
+**__pycache__ 
 
-/project1/scripts/__pycache__
 
-/project1/scripts/.ipynb_checkpoints/
-
-/project1/notebooks/.ipynb_checkpoints/
