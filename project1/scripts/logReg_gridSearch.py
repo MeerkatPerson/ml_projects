@@ -12,6 +12,17 @@ import concurrent.futures
 
 import copy
 
+import sys
+
+import time
+
+# @ TODO use most recent version of logistic regression
+# @ TODO Argument for logistic reg: distribution from which w_initial should
+# be sampled
+# @ TODO store_losses should be false
+# @ TODO store final loss
+# @ TODO k_fold validation
+
 #utils for ClassifierLogisticRegression
 
 def sigmoid(t):
@@ -24,32 +35,31 @@ def der_sigmoid(t):
     return sigmoid(t)*(1-sigmoid(t))
 
 
-def log_likelihood_loss(y, tx, w):
+def log_likelihood_loss(y, tx, w, lambda_):
     """compute the loss: negative log likelihood."""
     pred = sigmoid(tx.dot(w)) 
-    return ((y - pred)**2).mean()
+    return 1/2 * (((y - pred)**2).mean() + lambda_ * np.linalg.norm(w))
 
 
-
-def calculate_gradient(y, x, w):
+def calculate_gradient(y, x, w, lambda_):
     """compute the gradient of log_likelihood_loss wrt weights."""
     temp = y.ravel()
     arg = x@w
     s = sigmoid(arg)
     gradient = x.T@(s - temp)
-    return gradient
+    return gradient + lambda_ * w
 
 
-def learning_by_gradient_descent(y, tx, w, gamma, return_gradient = False):
+def learning_by_gradient_descent(y, tx, w, gamma, lambda_, return_gradient = False):
     """
     Do one step of gradient descent using logistic regression.
     Return the loss and the updated w.
     """
     w = w.ravel()
     #compute loss
-    loss = log_likelihood_loss(y, tx, w)
+    loss = log_likelihood_loss(y, tx, w, lambda_)
     #copmute gradient
-    grad = calculate_gradient(y, tx, w)
+    grad = calculate_gradient(y, tx, w, lambda_)
     #do gradient step 
     w -= gamma*grad
 
@@ -150,7 +160,8 @@ class ClassifierLogisticRegression():
                         y_train[b:b+batch_size], 
                         tx_train[b:b+batch_size], 
                         self.w, 
-                        self.gamma, 
+                        self.gamma,
+                        self.lambda_, 
                         return_gradient = True)
                     
                 else:
@@ -158,7 +169,8 @@ class ClassifierLogisticRegression():
                         y_train[b:b+batch_size], 
                         tx_train[b:b+batch_size], 
                         self.w, 
-                        self.gamma
+                        self.gamma,
+                        self.lambda_
                         )
             
                 #update accumulated loss
@@ -352,27 +364,33 @@ x_deg3 = build_poly_standard(x, 3)
 
 datasets = [x, x_deg2, x_deg3]
 
+lambdas = np.logspace(-4, 0, 40)
+
 # generate an arbitrary amount of models
 
 for i in range(40):
 
-    l_rate = np.random.uniform(10**(-5), 10**(-1))
+    l_rate = np.random.uniform(10**(-7), 10**(-1))
 
-    b_size = np.random.randint(1, 100001)
+    # l_rate = np.random.uniform(0.075,0.085) # better use a logarithmic scale?
+
+    b_size = np.random.randint(1000, 100001)
 
     dataset_ind = np.random.randint(0,3)
 
-    triplets.append((l_rate, dataset_ind, b_size))
+    triplets.append((l_rate, dataset_ind, b_size, lambdas[i]))
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # Train a model for a specific combination of l_rate, dataset, and b_size, and return the rediction accuracy 
 
-def train_model(l_rate, dataset, b_size):
+def train_model(l_rate, dataset, b_size, lambda__):
+
+    # @ TODO perform k_fold cross-validation here
     
     y_train, tx_train = preprocessing(y, datasets[dataset], 'NanToMean', standardize_=True) 
     
-    clf = ClassifierLogisticRegression(lambda_ = 0, regularizer = None, gamma= l_rate, max_iterations = 100, threshold = 0)
+    clf = ClassifierLogisticRegression(lambda_ = lambda__, regularizer = None, gamma= l_rate, max_iterations = 1000, threshold = 0)
     
     y_train = (y_train+1)/2
     
@@ -382,29 +400,47 @@ def train_model(l_rate, dataset, b_size):
     
     w_initial = clf.train(y_train, tx_train, verbose = True, batch_size = b_size, tx_validation = tx_validation, y_validation = y_validation, store_gradient=False)
 
+    # @ TODO return train + test accuracy + losses incl. SD
+
     return (clf.predict(tx_train) == y_train).mean(), w_initial
 
 # Worker function, i.e. the function that will be performed by each process
 
 def worker(triplet):
 
-    l_rate, dataset_ind, b_size = triplet
+    l_rate, dataset_ind, b_size, lambda_ = triplet
 
-    accuracy, w_initial = train_model(l_rate, dataset_ind, b_size)
-    print(f'Learning rate: {l_rate}, dataset-nr: {dataset_ind}, batch-size: {b_size}, accuracy: {accuracy}')
+    # @TODO add w_initial to clf.params
+
+    accuracy, w_initial = train_model(l_rate, dataset_ind, b_size, lambda_)
+    print(f'Learning rate: {l_rate}, dataset-nr: {dataset_ind}, batch-size: {b_size}, lambda: {lambda_}, accuracy: {accuracy}')
 
     # NEW: also store w_initial, as it is now randomly generated in 'train'-method in log reg classifier
     
-    return ({"dataset": dataset_ind, "batch_size": b_size, "learning rate": l_rate, "w_initial": w_initial, "accuracy": accuracy})
+    return ({"dataset": dataset_ind, "batch_size": b_size, "learning rate": l_rate, "lambda": {lambda_}, "w_initial": w_initial, "accuracy": accuracy})
 
 if __name__ == '__main__':
 
     # using this library now, makes parallelization embarassingly easy
 
+    t0 = time.time()
+
     with concurrent.futures.ProcessPoolExecutor() as executor:
 
         result = executor.map(worker, triplets)
 
-        print(tuple(result))
+        res_list = list(result)
+
+        print(res_list)
+
+        # print(sys.getsizeof(tuple(result)))
+
+        print(len(res_list))
 
         # @TODO 'result' is currently a tuple of dictionaries, should be transformed to np array for plotting purposes
+
+    t1 = time.time()
+
+    total = t1-t0
+
+    print(total)
