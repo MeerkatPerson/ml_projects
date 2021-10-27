@@ -8,7 +8,9 @@ from plots import visualization
 from proj1_helpers import *
 
 # Next strategy to try: use concurrent.futures (also in Python 3 standard library)
-# import concurrent.futures
+import concurrent.futures
+
+import copy
 
 #utils for ClassifierLogisticRegression
 
@@ -97,7 +99,6 @@ class ClassifierLogisticRegression():
         #threshold in gradient descent
         self.threshold = threshold
         
-
         self.update_params()
 
     def train(self, y_train, tx_train, batch_size = -1, verbose = True, tx_validation = None, y_validation = None, store_gradient = False):
@@ -109,7 +110,16 @@ class ClassifierLogisticRegression():
             Hypothesis: tx_train ndd y_train have the same length
         """
         #initialize the weights
-        self.w = np.zeros(tx_train.shape[1])
+        # self.w = np.zeros(tx_train.shape[1])
+
+        # NEW: generate a random vector of values between -1 and 1 and use as w
+
+        self.w = np.random.uniform(-1, 1, tx_train.shape[1]) 
+
+        # also store a deep copy of that random vector in 'w_initial'
+
+        w_initial = copy.deepcopy(self.w)
+
         #store the losses over 1 complete iteration (epoch)
         self.losses = []
         #store the prediction accuracies if validation tests are inputted:
@@ -202,6 +212,8 @@ class ClassifierLogisticRegression():
         #if required, store the norm of the gradient
         if store_gradient:
             self.params['stored_gradients'] = self.stored_gradients
+
+        return w_initial
     
     def predict(self, x):
         """ 
@@ -326,11 +338,9 @@ y, x, ids_train = load_csv_data('../data/train.csv')
 # For exploring relationship of parameters in their effect on accuracy, set up lists of possible values for these parameters
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-# Values for learning rates
-l_rates = [10**(-5),10**(-4),10**(-3),10**(-2),10**(-1)]
+# Create a list of tuples, with each tuple representing a random combination of parameters
 
-# Values for batch sizes
-b_sizes = [1,100,1000,50000,100000]
+triplets = []
 
 # Number of features: 
 # * 30 (original dataset), 
@@ -342,27 +352,19 @@ x_deg3 = build_poly_standard(x, 3)
 
 datasets = [x, x_deg2, x_deg3]
 
+# generate an arbitrary amount of models
+
+for i in range(40):
+
+    l_rate = np.random.uniform(10**(-5), 10**(-1))
+
+    b_size = np.random.randint(1, 100001)
+
+    dataset_ind = np.random.randint(0,3)
+
+    triplets.append((l_rate, dataset_ind, b_size))
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Import itertools (for generating cross-product of l_rates, b_sizes and datasets) and multiprocessing 
-# (both from Python standard library)
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-import itertools
-
-import multiprocessing
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-# Generate crossproducts of l_rates, b_sizes and datasets
-
-triplets = itertools.product(l_rates, [0,1,2], b_sizes)
-
-# for chunking iterables (here, the iterable is the crossproduct 'triplets')
-
-def get_chunks(iterable, chunks=1):
-    # This is from http://stackoverflow.com/a/2136090/2073595
-    lst = list(iterable)
-    return [lst[i::chunks] for i in range(chunks)]
 
 # Train a model for a specific combination of l_rate, dataset, and b_size, and return the rediction accuracy 
 
@@ -378,69 +380,31 @@ def train_model(l_rate, dataset, b_size):
     
     tx_train, y_train, tx_validation, y_validation = split_data(tx_train, y_train, ratio = 0.7, verbose = False)
     
-    clf.train(y_train, tx_train, verbose = True, batch_size = b_size, tx_validation = tx_validation, y_validation = y_validation, store_gradient=True)
+    w_initial = clf.train(y_train, tx_train, verbose = True, batch_size = b_size, tx_validation = tx_validation, y_validation = y_validation, store_gradient=False)
 
-    return (clf.predict(tx_train) == y_train).mean()
+    return (clf.predict(tx_train) == y_train).mean(), w_initial
 
 # Worker function, i.e. the function that will be performed by each process
 
-# def worker(queue, triplets):
-def worker(triplets):
-    # best_accuracy = best_l_rate = best_dataset = best_b_size = 0
+def worker(triplet):
 
-    results = []
+    l_rate, dataset_ind, b_size = triplet
 
-    for l_rate, dataset, b_size in triplets:
-        accuracy = train_model(l_rate, dataset, b_size)
-        print(f'Learning rate: {l_rate}, dataset-nr: {dataset}, batch-size: {b_size}, accuracy: {accuracy}')
-        '''
-        # If only best result per worker process is to be extracted (currently don't see any use in this)
+    accuracy, w_initial = train_model(l_rate, dataset_ind, b_size)
+    print(f'Learning rate: {l_rate}, dataset-nr: {dataset_ind}, batch-size: {b_size}, accuracy: {accuracy}')
 
-        if accuracy > best_accuracy:
-            best_accuracy = accuracy
-            best_l_rate = l_rate
-            best_dataset = dataset
-            best_b_size = b_size
-        '''
-        results.append({"dataset": dataset, "batch_size": b_size, "learning rate": l_rate, "accuracy": accuracy})
-    # queue.put((best_accuracy, best_l_rate, best_dataset, best_b_size))
-
-    return results
+    # NEW: also store w_initial, as it is now randomly generated in 'train'-method in log reg classifier
+    
+    return ({"dataset": dataset_ind, "batch_size": b_size, "learning rate": l_rate, "w_initial": w_initial, "accuracy": accuracy})
 
 if __name__ == '__main__':
 
-    # queue = multiprocessing.Queue()
+    # using this library now, makes parallelization embarassingly easy
 
-    pool = multiprocessing.Pool()
+    with concurrent.futures.ProcessPoolExecutor() as executor:
 
-    # procs = []
-    chunked_triplets = get_chunks(triplets, chunks=multiprocessing.cpu_count())
+        result = executor.map(worker, triplets)
 
-    '''
-    # When using multiprocessing.Queue
+        print(tuple(result))
 
-    for i in range(multiprocessing.cpu_count()):
-        
-        proc = multiprocessing.Process(target=worker, args=(queue, chunked_triplets[i]))
-        
-        procs.append(proc)
-        
-        proc.start()
-        
-    results = {}
-        
-    for i in range(multiprocessing.cpu_count()):
-        
-        results.update(queue.get())
-        
-    for i in procs:
-        
-        i.join()
-        
-    print(results)
-    '''
-
-    results = pool.map(worker, chunked_triplets)
-    pool.close()
-    pool.join()
-    print(results)
+        # @TODO 'result' is currently a tuple of dictionaries, should be transformed to np array for plotting purposes
