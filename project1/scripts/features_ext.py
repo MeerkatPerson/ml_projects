@@ -66,6 +66,9 @@ def exponents(n_variables, degree, n_features, non_interaction_first=False):
         exp_sub_list += [exp[indices].copy()]
         exp = exp[~indices]
         
+    #NOTE i added this (27.10.) so we get reproducibility
+    np.random.seed(42)
+
     #make random permutation of the indeces
     indices = np.random.permutation(exp.shape[0])
     exp = exp[indices]

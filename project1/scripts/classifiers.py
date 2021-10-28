@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 from utils import *
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # This module contains the implementation of classifiers objects
@@ -209,6 +210,21 @@ class ClassifierCentroids(Classifier):
 
 ############################################################################################################################################
 
+# For obtaining an initial_w vector conforming to the distribution prescribed in log reg constructor args.
+
+def get_initial_w(distr, size):
+
+    if distr == "uniform": return np.random.uniform(low=-1, high=1, size=size)
+
+    elif distr == "normal": return np.random.normal(loc=0, scale=1, size=size)
+
+    elif distr == "log": return np.random.lognormal(mean=0, sigma=1, size=size)
+
+    elif distr == "zero": np.zeros(size)
+
+    else:
+        raise Exception("Unknown distribution input")
+
 #Logistic regression
 class ClassifierLogisticRegression(Classifier):
 
@@ -221,7 +237,7 @@ class ClassifierLogisticRegression(Classifier):
         self.params['max_iterations'] = self.max_iterations
         self.params['threshold'] = self.threshold
     
-    def __init__(self, lambda_, regularizer, gamma, max_iterations , threshold):
+    def __init__(self, lambda_, regularizer, gamma, max_iterations, w_sampling_distr, threshold):
         """ 
             Sets parameters for logistic regression
             Argument:
@@ -247,10 +263,13 @@ class ClassifierLogisticRegression(Classifier):
         #the maximum number of iterations
         self.max_iterations = max_iterations
 
+        # the distribution from which to sample the initial w
+        # uniform, log, normal ...
+        self.w_sampling_distr = w_sampling_distr
+
         #threshold in gradient descent
         self.threshold = threshold
         
-
         self.update_params()
 
     def train(self, y_train, tx_train, batch_size = -1, verbose = True, tx_validation = None, y_validation = None, store_gradient = False, store_losses = False):
@@ -262,7 +281,10 @@ class ClassifierLogisticRegression(Classifier):
             Hypothesis: tx_train ndd y_train have the same length
         """
         #initialize the weights
-        self.w = np.zeros(tx_train.shape[1])
+        self.w = get_initial_w(self.w_sampling_distr, tx_train.shape[1])
+
+        self.initial_w = copy.deepcopy(self.w)
+
         #if store_lossesstore the losses over 1 complete iteration (epoch)
         self.losses = []
         #store the prediction accuracies if validation tests are inputted:
@@ -363,6 +385,11 @@ class ClassifierLogisticRegression(Classifier):
         #if required, store the norm of the gradient
         if store_gradient:
             self.params['stored_gradients'] = self.stored_gradients
+
+        # Store initial_w & distribution it was sampled from in param-dict
+        self.params['initial_w'] = self.initial_w
+
+        self.params['w_sampling_distr'] = self.w_sampling_distr
     
 
     def predict(self, x):

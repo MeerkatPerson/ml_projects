@@ -12,10 +12,6 @@ from proj1_helpers import *
 # Next strategy to try: use concurrent.futures (also in Python 3 standard library)
 import concurrent.futures
 
-import copy
-
-import sys
-
 import time
 
 from utils import *
@@ -26,98 +22,154 @@ from validation import *
 
 from features_ext import *
 
+from itertools import product
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Read in the data
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-TRAIN = '../data/train.csv' # due to directory structure, the data directory is now one directory above this one
-TEST = '../data/test.csv'
-y, x, ids_train = load_csv_data('../data/train.csv')
+# Yup I too have gone object-oriented ... 
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# For exploring relationship of parameters in their effect on accuracy, set up lists of possible values for these parameters
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+class GridSearch_Simulation:
 
-# Create a list of tuples, with each tuple representing a random combination of parameters
+    def __init__(self, train, test):
 
-triplets = [(1e-5,0,-1,0.1)]
+        self.train = train
+        self.test = test
 
-# Number of features: 
-# * 30 (original dataset), 
-# * 90 (original dataset + polynomials of deg 2), 
-# * 120 (original dataset + polynomials of deg 2 + polynomials of deg 3)
+        self.y, self.datasets, self.param_tuples = self.get_data_and_params()
 
-x_deg2 = build_poly_standard(x, 2)
-
-x_deg3 = build_poly_standard(x, 3)
-
-datasets = [x, x_deg2, x_deg3]
-
-lambdas = np.logspace(-4, 0, 40)
-
-# generate an arbitrary amount of models
-'''
-for i in range(40):
-
-    l_rate = np.random.uniform(10**(-7), 10**(-1))
-
-    # l_rate = np.random.uniform(0.075,0.085) # better use a logarithmic scale?
-
-    b_size = np.random.randint(1000, 100001)
-
-    dataset_ind = np.random.randint(0,3)
-
-    triplets.append((l_rate, dataset_ind, b_size, lambdas[i]))
-'''
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-# Train a model for a specific combination of l_rate, dataset, and b_size, and return the rediction accuracy 
-
-def train_model(l_rate, dataset, b_size, lambda__):
-
-    # @ TODO perform k_fold cross-validation here
+    def get_data_and_params(self):
     
-    y_train, tx_train = preprocess(y, datasets[dataset], 'NanToMean', standardize_=True) 
-    
-    clf = ClassifierLogisticRegression(lambda_ = lambda__, regularizer = None, gamma= l_rate, max_iterations = 1000, threshold = 0)
-    
-    y_train = (y_train+1)/2
-    
-    print('Sanity check :n = ', tx_train.shape[0], 'D = ', tx_train.shape[1])
-    
-    tx_train, y_train, tx_validation, y_validation = split_data(tx_train, y_train, ratio = 0.7, verbose = False)
-    
-    w_initial = clf.train(y_train, tx_train, verbose = True, batch_size = b_size, tx_validation = tx_validation, y_validation = y_validation, store_gradient=False)
+        y, x, ids_train = load_csv_data(self.train)
 
-    # @ TODO return train + test accuracy + losses incl. SD
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # For exploring relationship of parameters in their effect on accuracy, set up lists of possible values for these parameters
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    return (clf.predict(tx_train) == y_train).mean(), w_initial
+        # Create a list of tuples, with each tuple representing a random combination of parameters
 
-# Worker function, i.e. the function that will be performed by each process
+        # Generate exponents of degree 2 for now
+        # k_exponents_deg2[0] will contain the non-interactive terms of degree 2;
+        # k_exponents_deg2[1] ... k_exponents_deg2[len(k_exponents_deg2)-1] will contain random sets of 10 interactive terms of degree 2
+        # arguments of the 'exponents'-function (which resides in features_ext.py): 
+        # * number of original features (= # columns of the original data matrix)
+        # * degree
+        # * number of terms in each of the sets of interactive terms in k_exponents_deg2[1] ... k_exponents_deg2[len(k_exponents_deg2)-1]
+        # * non_interaction_first=True: this means that k_exponents_deg2[0] will contain the non-interactive terms of degree 2.
 
-def worker(triplet):
+        k_exponents_deg2 = exponents(x.shape[1], 2, 10, non_interaction_first=True)
 
-    l_rate, dataset_ind, b_size, lambda_ = triplet
+        # First add just the 'normal' unaugmented data matrix to the list of datasets.
+        datasets = [x]
 
-    # @TODO add w_initial to clf.params
+        # Now generate the non-interactive terms of degree two
+        new_features_noninteractive_deg2 = gen_new_features(x, k_exponents_deg2[0])
 
-    accuracy, w_initial = train_model(l_rate, dataset_ind, b_size, lambda_)
-    print(f'Learning rate: {l_rate}, dataset-nr: {dataset_ind}, batch-size: {b_size}, lambda: {lambda_}, accuracy: {accuracy}')
+        # Augment the original dataset with the non-interactive terms of degree two
+        expanded_noninteractive_deg2 = np.append(x, new_features_noninteractive_deg2, axis = 1 )
 
-    # NEW: also store w_initial, as it is now randomly generated in 'train'-method in log reg classifier
-    
-    return ({"dataset": dataset_ind, "batch_size": b_size, "learning rate": l_rate, "lambda": {lambda_}, "w_initial": w_initial, "accuracy": accuracy})
+        # Add to the list of datasets
+
+        datasets.append(expanded_noninteractive_deg2)
+
+        # Currently picking only 8 random batches of interactive terms of degree 2 because there's ~45 of them ...
+
+        for i in range(0,8):
+
+            j = np.random.randint(2, len(k_exponents_deg2))
+
+            # Generate a batch of interactive terms of degree two
+            new_feature_batch_interactive_deg2 = gen_new_features(x, k_exponents_deg2[j])
+
+            # Augment the original dataset with the non-interactive terms of degree two
+            expanded_interactive_deg2 = np.append(expanded_noninteractive_deg2, new_feature_batch_interactive_deg2, axis = 1 )
+
+            datasets.append(expanded_interactive_deg2)
+
+            print("Added a new dataset with 10 interactive terms of degree 2 !")
+
+        #TODO pickle list of datasets so that we are able to relate the dataset indices output by the model to the actual dataset
+        #     it was generated with
+
+        # grab the dataset indices
+
+        dataset_indices = np.arange(0,len(datasets),1).tolist()
+
+        # generate learning rates
+
+        l_rates = np.logspace(-5,-1,10)
+
+        # generate batch sizes on a linear scale
+
+        b_sizes = np.linspace(start=1000, stop=x.shape[0], num=10, dtype=int)
+
+        # list of possiblities for sampling initial values of w
+
+        initial_w_distributions = ["uniform","normal","log","zero"]
+
+        # Get the crossproduct of all these parameters
+
+        tuples = list(product(dataset_indices, l_rates, b_sizes, initial_w_distributions))
+
+        print(tuples)
+
+        return y, datasets, tuples
+
+    # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    # Train a model for a specific combination of l_rate, dataset, and b_size, and return the rediction accuracy 
+
+    def train_model(self, dataset_idx, l_rate, b_size, initial_w_dist):
+
+        # @ TODO perform k_fold cross-validation here
+        
+        # print(dataset_idx)
+
+        # print(len(datasets))
+
+        y_train, tx_train = preprocess(self.y, self.datasets[dataset_idx], 'NanToMean', standardize_=True) 
+        
+        clf = ClassifierLogisticRegression(lambda_ = 0, regularizer = None, gamma= l_rate, max_iterations = 1000, w_sampling_distr = initial_w_dist, threshold = 0)
+        
+        y_train = (y_train+1)/2
+        
+        print('Sanity check :n = ', tx_train.shape[0], 'D = ', tx_train.shape[1])
+        
+        tx_train, y_train, tx_validation, y_validation = split_data(tx_train, y_train, ratio = 0.7, verbose = False)
+        
+        clf.train(y_train, tx_train, verbose = True, batch_size = b_size, tx_validation = tx_validation, y_validation = y_validation, store_gradient=False)
+
+        # @ TODO return train + test accuracy + losses incl. SD
+
+        return (clf.predict(tx_train) == y_train).mean()
+
+    # Worker function, i.e. the function that will be performed by each process
+
+    def worker(self, tuple_):
+
+        dataset, l_rate, b_size, initial_w_dist = tuple_
+
+        print("Worker starting to compute model!")
+
+        # @TODO add w_initial to clf.params
+
+        accuracy = self.train_model(dataset, l_rate, b_size, initial_w_dist)
+        print(f'dataset: {dataset}, learning rate: {l_rate}, batch-size: {b_size}, w_initial distribution: {initial_w_dist}, accuracy: {accuracy}')
+
+        # NEW: also store w_initial, as it is now randomly generated in 'train'-method in log reg classifier
+        
+        return ({"dataset": dataset, "batch_size": b_size, "learning rate": l_rate, "w_initial distr": initial_w_dist, "accuracy": accuracy})
 
 if __name__ == '__main__':
 
-    # using this library now, makes parallelization embarassingly easy
+    gss = GridSearch_Simulation('../data/train.csv', '../data/test.csv') 
 
     t0 = time.time()
 
     with concurrent.futures.ProcessPoolExecutor() as executor:
 
-        result = executor.map(worker, triplets)
+        result = executor.map(gss.worker, gss.param_tuples)
 
         res_list = list(result)
 
