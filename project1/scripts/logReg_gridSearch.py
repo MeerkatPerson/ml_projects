@@ -82,9 +82,10 @@ class GridSearch_Simulation:
             # Generate a batch of interactive terms of degree two
             new_feature_batch_interactive_deg2 = gen_new_features(x, k_exponents_deg2[j])
 
-            # Augment the original dataset with the non-interactive terms of degree two
+            # Augment the dataset containing non-interactive terms up to degree 2 with a batch of 10 interactive terms of degree two
             expanded_interactive_deg2 = np.append(expanded_noninteractive_deg2, new_feature_batch_interactive_deg2, axis = 1 )
 
+            # append to 
             datasets.append(expanded_interactive_deg2)
 
             print("Added a new dataset with 10 interactive terms of degree 2 !")
