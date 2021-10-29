@@ -73,7 +73,11 @@ class GridSearch_Simulation:
 
         datasets.append(expanded_noninteractive_deg2)
 
+        print(datasets[1])
+
         # Currently picking only 8 random batches of interactive terms of degree 2 because there's ~45 of them ...
+
+        k = 2
 
         for i in range(0,8):
 
@@ -85,8 +89,12 @@ class GridSearch_Simulation:
             # Augment the dataset containing non-interactive terms up to degree 2 with a batch of 10 interactive terms of degree two
             expanded_interactive_deg2 = np.append(expanded_noninteractive_deg2, new_feature_batch_interactive_deg2, axis = 1 )
 
-            # append to 
+            # append
             datasets.append(expanded_interactive_deg2)
+
+            print(datasets[k])
+
+            k += 1
 
             print("Added a new dataset with 10 interactive terms of degree 2 !")
 
@@ -95,7 +103,7 @@ class GridSearch_Simulation:
 
         # grab the dataset indices
 
-        dataset_indices = np.arange(0,len(datasets),1).tolist()
+        dataset_indices = np.arange(2,len(datasets),1).tolist()
 
         # generate learning rates
 
@@ -104,7 +112,7 @@ class GridSearch_Simulation:
         # generate batch sizes on a linear scale
         # currently not using because of k-fold crossvalidation
 
-        # b_sizes = np.linspace(start=1000, stop=x.shape[0], num=10, dtype=int)
+        b_sizes = np.linspace(start=1000, stop=x.shape[0], num=10, dtype=int)
 
         # list of possiblities for sampling initial values of w
 
@@ -112,7 +120,7 @@ class GridSearch_Simulation:
 
         # Get the crossproduct of all these parameters
 
-        tuples = list(product(dataset_indices, l_rates, initial_w_distributions))
+        tuples = list(product(dataset_indices, l_rates, b_sizes, initial_w_distributions))
 
         # print(tuples)
 
@@ -122,7 +130,7 @@ class GridSearch_Simulation:
 
     # Train a model for a specific combination of l_rate, dataset, and b_size, and return the rediction accuracy 
 
-    def train_model(self, dataset_idx, l_rate, initial_w_dist):
+    def train_model(self, dataset_idx, l_rate, b_size, initial_w_dist):
 
         # (1) Pre-process
 
@@ -182,7 +190,7 @@ class GridSearch_Simulation:
             
             # Batch size now -1, which results in batch_size = N, as using k-fold
 
-            clf.train(y_train = y_train_k, tx_train = x_train_k, verbose = True, tx_validation = x_test_k, y_validation = y_test_k, store_gradient=False)
+            clf.train(y_train = y_train_k, tx_train = x_train_k, batch_size = b_size, verbose = True, tx_validation = x_test_k, y_validation = y_test_k, store_gradient=False)
 
             acc_tr.append( (clf.predict(x_train_k) == y_train_k).mean() )
 
@@ -198,14 +206,14 @@ class GridSearch_Simulation:
 
     def worker(self, tuple_):
 
-        dataset, l_rate, initial_w_dist = tuple_
+        dataset, l_rate, b_size, initial_w_dist = tuple_
 
         print("Worker starting to compute model!")
 
-        acc_tr, acc_te, losses_tr, losses_te  = self.train_model(dataset, l_rate, initial_w_dist)
-        print(f'dataset: {dataset}, learning rate: {l_rate}, w_initial distribution: {initial_w_dist}, acc_tr: {acc_tr}, acc_te: {acc_te}, losses_tr: {losses_tr}, losses_te: {losses_te}')
+        acc_tr, acc_te, losses_tr, losses_te  = self.train_model(dataset, l_rate, b_size, initial_w_dist)
+        print(f'dataset: {dataset}, learning rate: {l_rate}, batch_size: {b_size}, w_initial distribution: {initial_w_dist}, acc_tr: {acc_tr}, acc_te: {acc_te}, losses_tr: {losses_tr}, losses_te: {losses_te}')
         
-        return ({"dataset": dataset, "learning rate": l_rate, "w_initial distr": initial_w_dist, "acc_tr": acc_tr, "acc_te": acc_te, "losses_tr": losses_tr, "losses_te": losses_te})
+        return ({"dataset": dataset, "learning rate": l_rate, "batch_size": b_size, "w_initial distr": initial_w_dist, "acc_tr": acc_tr, "acc_te": acc_te, "losses_tr": losses_tr, "losses_te": losses_te})
 
 if __name__ == '__main__':
 
