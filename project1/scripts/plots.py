@@ -2,10 +2,14 @@
 """visualize the result."""
 import numpy as np
 import matplotlib.pyplot as plt
-
 from helpers import de_standardize, standardize
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Contains visualization methods
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
+# Visualize the result of LogReg training  on dataset TODO: How generall is this ? 
 def visualization(y, x, mean_x, std_x, w, save_name, is_LR=False):
     """visualize the raw data as well as the classification result."""
     fig = plt.figure()
@@ -58,3 +62,39 @@ def visualization(y, x, mean_x, std_x, w, save_name, is_LR=False):
     ax2.set_ylim([min(x[:, 1]), max(x[:, 1])])
     plt.tight_layout()
     plt.savefig(save_name+".pdf")
+
+
+
+#plots the evolution of important quantities while training for logistic regression
+def training_plots(clf, show_gradient = False):
+    """Plots training observables when training with logistic regression: 
+        1.Accuravy on Training Set
+        2.Accuracy on Validation Set
+        3.(Optional)Norm of gradients while training
+        
+    Arguments:
+        -clf: the classifier, after training. With the relevant quantities stored in clf.params
+        -show_gradient. If True shows the norm of the gradients of the classifier while training
+    """
+    fig, axis = plt.subplots(1, 2, figsize = (20, 5))
+    axis[0].plot(clf.params['losses'], label = 'Loss')
+    axis[0].set_xlabel('Iteration')
+    axis[0].set_ylabel('MSE Loss')
+    axis[0].set_title('Loss')
+    axis[0].legend()
+
+    axis[1].plot(clf.params['accuyracues_while_training_train'], label = 'accuracy training')
+    axis[1].plot(clf.params['accuyracues_while_training_validation'], label = 'accuracy validation')
+    axis[1].set_xlabel('Iteration')
+    axis[1].set_ylabel('Fraction of success')
+    axis[0].set_title('Overfit test')
+    axis[1].legend()
+    plt.show()
+
+    if show_gradient:
+        fig = plt.figure()
+        plt.plot(clf.params['stored_gradients'])
+        plt.ylabel('norm of the gradients (log-scale)')
+        plt.xlabel('Iteration')
+        plt.title('Norm of gradients')
+        plt.show()

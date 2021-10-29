@@ -237,7 +237,7 @@ class ClassifierLogisticRegression(Classifier):
         self.params['max_iterations'] = self.max_iterations
         self.params['threshold'] = self.threshold
     
-    def __init__(self, lambda_, regularizer, gamma, max_iterations, w_sampling_distr, threshold):
+    def __init__(self, lambda_, regularizer, gamma, max_iterations, min_max_iterations, w_sampling_distr, threshold):
         """ 
             Sets parameters for logistic regression
             Argument:
@@ -262,6 +262,9 @@ class ClassifierLogisticRegression(Classifier):
 
         #the maximum number of iterations
         self.max_iterations = max_iterations
+
+        #the minimum number iterations after which the training can be done if the difference in the loss is smaller than threshold
+        self.min_max_iterations = min_max_iterations
 
         # the distribution from which to sample the initial w
         # uniform, log, normal ...
@@ -334,6 +337,7 @@ class ClassifierLogisticRegression(Classifier):
             #output the loss if verbose
             if verbose and iter % 100 == 0:
                 print("Current iteration={a}, loss={b}".format(a=iter, b=acc_loss))
+                #print(self.w)
             
             #if required, store the predictions log
             if (tx_validation is not None) and (y_validation is not None):
@@ -349,7 +353,7 @@ class ClassifierLogisticRegression(Classifier):
             
 
             #check if convergence has been achieved
-            if len(self.losses) > 1 and np.abs(self.losses[-1] - self.losses[-2]) < self.threshold:
+            if iter < self.min_max_iterations and len(self.losses) > 1 and np.abs(self.losses[-1] - self.losses[-2]) < self.threshold:
             
                 print('hit thresh')
 
