@@ -25,20 +25,43 @@ def build_centroids(y, x):
 # mostly ClassifierLogisticRegression-related functions
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def sigmoid(t):
-    """Compute the sigmoid function on t."""
-    return 1./ (1+ np.exp(-t))
+def sigmoid(x):
+    """Numerically stable sigmoid function."""
+    try :
+        if x >= 0:
+            z = np.exp(-x)
+            return 1 / (1 + z)
+        else:
+
+            # if x is less than zero then z will be small, denom can't be
+            # zero because it's 1+z.
+            z = np.exp(x)
+            return z / (1 + z)
+    except :
+        print('Error:', x)
+        raise UnicodeTranslateError
+    return x
 
 
 def der_sigmoid(t):
     """Compute derivtive of sigmoid on t"""
     return sigmoid(t)*(1-sigmoid(t))
 
-
 def mse_loss(y, tx, w, lambda_):
     """compute the loss: negative log likelihood."""
     pred = sigmoid(tx.dot(w)) 
     return ((y - pred)**2).mean() + lambda_ * (w**2).mean()
+
+def loglikelihood_loss(y, tx, w, lambda_):
+
+    """compute the loss: negative log likelihood."""
+    temp = y.ravel()
+    arg = (tx@w).ravel().astype(np.longdouble)
+    arg = sigmoid(arg)
+    return -((temp*np.log(arg)) + (1.-temp)*np.log( 1. - arg)).sum()
+    ############
+
+    pass
 
 def calculate_gradient(y, x, w, lambda_):
     """compute the gradient of log_likelihood_loss wrt weights."""
@@ -46,6 +69,7 @@ def calculate_gradient(y, x, w, lambda_):
     arg = x@w
     s = sigmoid(arg)
     gradient = x.T@(s - temp)
+    #gradient = 1/x.shape[0]
     return gradient + 2 * lambda_ * w
 
 
@@ -68,7 +92,8 @@ def learning_by_gradient_descent(y, tx, w, gamma, lambda_, return_gradient = Fal
     grad = calculate_gradient(y, tx, w, lambda_)
     w -= gamma*grad
     loss = mse_loss(y, tx, w, lambda_)
-
+    #loss = loglikelihood_loss(y, tx, w, lambda_)
+    
     #if required, return also the gradient
     if return_gradient:
         return loss, w, grad
