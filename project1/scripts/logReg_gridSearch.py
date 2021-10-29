@@ -24,6 +24,10 @@ from features_ext import *
 
 from itertools import product
 
+import pickle
+
+import zipfile
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Read in the data
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -79,12 +83,12 @@ class GridSearch_Simulation:
 
         k = 2
 
-        for i in range(0,8):
+        for i in range(1,8):
 
-            j = np.random.randint(2, len(k_exponents_deg2))
+            # j = np.random.randint(2, len(k_exponents_deg2))
 
             # Generate a batch of interactive terms of degree two
-            new_feature_batch_interactive_deg2 = gen_new_features(x, k_exponents_deg2[j])
+            new_feature_batch_interactive_deg2 = gen_new_features(x, k_exponents_deg2[i])
 
             # Augment the dataset containing non-interactive terms up to degree 2 with a batch of 10 interactive terms of degree two
             expanded_interactive_deg2 = np.append(expanded_noninteractive_deg2, new_feature_batch_interactive_deg2, axis = 1 )
@@ -98,12 +102,37 @@ class GridSearch_Simulation:
 
             print("Added a new dataset with 10 interactive terms of degree 2 !")
 
-        #TODO pickle list of datasets so that we are able to relate the dataset indices output by the model to the actual dataset
+        # Add non-interactive terms of deg 3
+
+        k_exponents_deg3 = exponents(x.shape[1], 3, 10, non_interaction_first=True)
+
+        # Now generate the non-interactive terms of degree three
+        new_features_noninteractive_deg3 = gen_new_features(x, k_exponents_deg3[0])
+
+        # Augment the original dataset with the non-interactive terms of degree two
+        expanded_noninteractive_deg3 = np.append(expanded_noninteractive_deg2, new_features_noninteractive_deg3, axis = 1 )
+
+        # Add to the list of datasets
+
+        datasets.append(expanded_noninteractive_deg3)
+
+        # pickle list of datasets so that we are able to relate the dataset indices output by the model to the actual dataset
         #     it was generated with
+
+        with open('../results/dataset_list.txt', 'wb') as fh:
+            pickle.dump(datasets, fh)
+
+        # All together, the datasets in the dataset-list are
+        # datasets[0] = unaltered original dataset
+        # datasets[1] = original dataset + noninteractive terms of deg2
+        # datasets[2] ... datasets[8] = original dataset + noninteractive terms of deg2 + batch of interactive terms of deg2
+        # datasets[9] = original dataset + noninteractive terms of deg2 + noninteractive terms of deg3
 
         # grab the dataset indices
 
-        dataset_indices = np.arange(2,len(datasets),1).tolist()
+        dataset_indices = np.arange(0,len(datasets),1).tolist()
+
+        print(len(dataset_indices))
 
         # generate learning rates
 
@@ -112,11 +141,11 @@ class GridSearch_Simulation:
         # generate batch sizes on a linear scale
         # currently not using because of k-fold crossvalidation
 
-        b_sizes = np.linspace(start=1000, stop=x.shape[0], num=10, dtype=int)
+        b_sizes = np.linspace(start=1000, stop=x.shape[0], num=4, dtype=int)
 
         # list of possiblities for sampling initial values of w
 
-        initial_w_distributions = ["uniform","normal","log","zero"]
+        initial_w_distributions = ["uniform","normal","log"]
 
         # Get the crossproduct of all these parameters
 
@@ -208,14 +237,35 @@ class GridSearch_Simulation:
 
         dataset, l_rate, b_size, initial_w_dist = tuple_
 
-        print("Worker starting to compute model!")
+        try:
 
-        acc_tr, acc_te, losses_tr, losses_te  = self.train_model(dataset, l_rate, b_size, initial_w_dist)
-        print(f'dataset: {dataset}, learning rate: {l_rate}, batch_size: {b_size}, w_initial distribution: {initial_w_dist}, acc_tr: {acc_tr}, acc_te: {acc_te}, losses_tr: {losses_tr}, losses_te: {losses_te}')
-        
-        return ({"dataset": dataset, "learning rate": l_rate, "batch_size": b_size, "w_initial distr": initial_w_dist, "acc_tr": acc_tr, "acc_te": acc_te, "losses_tr": losses_tr, "losses_te": losses_te})
+            print("Worker starting to compute model!")
+
+            acc_tr, acc_te, losses_tr, losses_te  = self.train_model(dataset, l_rate, b_size, initial_w_dist)
+            print(f'dataset: {dataset}, learning rate: {l_rate}, batch_size: {b_size}, w_initial distribution: {initial_w_dist}, acc_tr: {acc_tr}, acc_te: {acc_te}, losses_tr: {losses_tr}, losses_te: {losses_te}')
+            
+            return ({"dataset": dataset, "learning rate": l_rate, "batch_size": b_size, "w_initial distr": initial_w_dist, "acc_tr": acc_tr, "acc_te": acc_te, "losses_tr": losses_tr, "losses_te": losses_te})
+
+        except:
+
+            print("Error computing model!")
+
+            print(f'Error occurred with: dataset: {dataset}, learning rate: {l_rate}, batch_size: {b_size}, w_initial distribution: {initial_w_dist}')
+
+            return ({"dataset": dataset, "learning rate": l_rate, "batch_size": b_size, "w_initial distr": initial_w_dist, "acc_tr": "unknown", "acc_te": "unknown", "losses_tr": "unknown", "losses_te": "unknown"})
+
 
 if __name__ == '__main__':
+
+    '''
+
+    with zipfile.ZipFile("../data/train.csv.zip","r") as zf1:
+        zf1.extractall('../data')
+
+    with zipfile.ZipFile("../data/test.csv.zip","r") as zf2:
+        zf2.extractall('../data')
+
+    '''
 
     gss = GridSearch_Simulation('../data/train.csv', '../data/test.csv') 
 
@@ -233,7 +283,8 @@ if __name__ == '__main__':
 
         print(len(res_list))
 
-        # @TODO 'result' is currently a tuple of dictionaries, should be transformed to np array for plotting purposes
+        with open('../results/logreg_gridsearch_res.txt', 'wb') as fh:
+            pickle.dump(res_list, fh)
 
     t1 = time.time()
 
