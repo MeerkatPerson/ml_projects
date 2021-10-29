@@ -220,7 +220,7 @@ def get_initial_w(distr, size):
 
     elif distr == "log": return np.random.lognormal(mean=0, sigma=1, size=size)
 
-    elif distr == "zero": np.zeros(size)
+    # elif distr == "zero": np.zeros(size)
 
     else:
         raise Exception("Unknown distribution input")
