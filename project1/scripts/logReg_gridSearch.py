@@ -101,8 +101,9 @@ class GridSearch_Simulation:
         l_rates = np.logspace(-5,-1,10)
 
         # generate batch sizes on a linear scale
+        # currently not using because of k-fold crossvalidation
 
-        b_sizes = np.linspace(start=1000, stop=x.shape[0], num=10, dtype=int)
+        # b_sizes = np.linspace(start=1000, stop=x.shape[0], num=10, dtype=int)
 
         # list of possiblities for sampling initial values of w
 
@@ -110,9 +111,9 @@ class GridSearch_Simulation:
 
         # Get the crossproduct of all these parameters
 
-        tuples = list(product(dataset_indices, l_rates, b_sizes, initial_w_distributions))
+        tuples = list(product(dataset_indices, l_rates, initial_w_distributions))
 
-        print(tuples)
+        # print(tuples)
 
         return y, datasets, tuples
 
@@ -120,46 +121,90 @@ class GridSearch_Simulation:
 
     # Train a model for a specific combination of l_rate, dataset, and b_size, and return the rediction accuracy 
 
-    def train_model(self, dataset_idx, l_rate, b_size, initial_w_dist):
+    def train_model(self, dataset_idx, l_rate, initial_w_dist):
 
-        # @ TODO perform k_fold cross-validation here
-        
-        # print(dataset_idx)
-
-        # print(len(datasets))
+        # (1) Pre-process
 
         y_train, tx_train = preprocess(self.y, self.datasets[dataset_idx], 'NanToMean', standardize_=True) 
         
-        clf = ClassifierLogisticRegression(lambda_ = 0, regularizer = None, gamma= l_rate, max_iterations = 1000, w_sampling_distr = initial_w_dist, threshold = 0)
-        
-        y_train = (y_train+1)/2
-        
         print('Sanity check :n = ', tx_train.shape[0], 'D = ', tx_train.shape[1])
-        
-        tx_train, y_train, tx_validation, y_validation = split_data(tx_train, y_train, ratio = 0.7, verbose = False)
-        
-        clf.train(y_train, tx_train, verbose = True, batch_size = b_size, tx_validation = tx_validation, y_validation = y_validation, store_gradient=False)
 
-        # @ TODO return train + test accuracy + losses incl. SD
+        # (2) Build k indices
 
-        return (clf.predict(tx_train) == y_train).mean()
+        k_fold = 4 # using a default from the lab, can of course be tweaked
+
+        seed = 1   # using a default from the lab, can of course be tweaked 
+
+        k_indices = build_k_indices(y_train, k_fold, seed)
+
+        print(f'k-fold dimensions: {k_indices.shape[0]}, {k_indices.shape[1]}')
+
+        # (3) Set up arrays in which the results of the k-fold will be stored
+
+        acc_tr = []
+        acc_te = []
+
+        losses_tr = []
+        losses_te = []
+
+        for k in range(k_fold):
+
+            test = k_indices[k]
+
+            # print(f'k-test dimensions: {test.shape[0]}, {test.shape[1]}')
+    
+            train = []
+    
+            for i in range(len(k_indices)):
+                
+                if i is not k:
+                
+                    train.extend(k_indices[i])
+
+            # (4) Get the train and test sets according to current k_index
+    
+            y_train_k = y_train[train]
+
+            y_train_k = (y_train_k+1)/2
+
+            y_test_k = y_train[test]
+
+            y_test_k = (y_test_k+1)/2
+    
+            x_train_k = tx_train[train]
+
+            x_test_k = tx_train[test]
+
+            # (5) Compute clf
+
+            clf = ClassifierLogisticRegression(lambda_ = 0, regularizer = None, gamma= l_rate, max_iterations = 1000, w_sampling_distr = initial_w_dist, threshold = 0)
+            
+            # Batch size now -1, which results in batch_size = N, as using k-fold
+
+            clf.train(y_train = y_train_k, tx_train = x_train_k, verbose = True, tx_validation = x_test_k, y_validation = y_test_k, store_gradient=False)
+
+            acc_tr.append( (clf.predict(x_train_k) == y_train_k).mean() )
+
+            acc_te.append( (clf.predict(x_test_k) == y_test_k).mean() )
+
+            losses_tr.append(mse_loss(y_train_k, x_train_k, clf.w, clf.lambda_))
+
+            losses_te.append(mse_loss(y_test_k, x_test_k, clf.w, clf.lambda_))
+
+        return sum(acc_tr)/(len(acc_tr)), sum(acc_te)/(len(acc_te)), sum(losses_tr)/(len(losses_tr)), sum(losses_te)/(len(losses_te))
 
     # Worker function, i.e. the function that will be performed by each process
 
     def worker(self, tuple_):
 
-        dataset, l_rate, b_size, initial_w_dist = tuple_
+        dataset, l_rate, initial_w_dist = tuple_
 
         print("Worker starting to compute model!")
 
-        # @TODO add w_initial to clf.params
-
-        accuracy = self.train_model(dataset, l_rate, b_size, initial_w_dist)
-        print(f'dataset: {dataset}, learning rate: {l_rate}, batch-size: {b_size}, w_initial distribution: {initial_w_dist}, accuracy: {accuracy}')
-
-        # NEW: also store w_initial, as it is now randomly generated in 'train'-method in log reg classifier
+        acc_tr, acc_te, losses_tr, losses_te  = self.train_model(dataset, l_rate, initial_w_dist)
+        print(f'dataset: {dataset}, learning rate: {l_rate}, w_initial distribution: {initial_w_dist}, acc_tr: {acc_tr}, acc_te: {acc_te}, losses_tr: {losses_tr}, losses_te: {losses_te}')
         
-        return ({"dataset": dataset, "batch_size": b_size, "learning rate": l_rate, "w_initial distr": initial_w_dist, "accuracy": accuracy})
+        return ({"dataset": dataset, "learning rate": l_rate, "w_initial distr": initial_w_dist, "acc_tr": acc_tr, "acc_te": acc_te, "losses_tr": losses_tr, "losses_te": losses_te})
 
 if __name__ == '__main__':
 
