@@ -99,16 +99,22 @@ def kernel(x, centroid):
 # ------------------------------------------------------------------------------------------------------------------
 
 def build_poly_standard(x, degree):
-    
-    powers = []
-    
-    for col in x.T:
-    
-      for j in range(0, degree+1):
-        
-        powers.append((col ** j).reshape(-1,1)) 
-        
-    return np.concatenate(powers,axis=1)
+    """
+    Build polynomial up to a given degree without interacting terms"""
+    #build the constant terms
+    expanded = np.ones_like(x[:, 0]).reshape(-1, 1)
+    expanded = np.concatenate((expanded, x), axis = 1)
+
+    #if degree smaller than 2 return
+    if degree <2:
+        return expanded
+    #otherwise expand the features
+    else:
+        for d in range(2, degree +1):
+            expanded = np.concatenate(
+                (expanded, x**d), axis = 1
+            )
+        return expanded
 
 def build_poly(x, degree, functions, centroids):
     """polynomial basis functions for input data x, for j=0 up to j=degree.

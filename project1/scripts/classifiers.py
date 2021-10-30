@@ -220,7 +220,7 @@ def get_initial_w(distr, size):
 
     elif distr == "log": return np.random.lognormal(mean=0, sigma=1, size=size)
 
-    # elif distr == "zero": np.zeros(size)
+    elif distr == "zero": return np.zeros(size)
 
     else:
         raise Exception("Unknown distribution input")
@@ -275,7 +275,7 @@ class ClassifierLogisticRegression(Classifier):
         
         self.update_params()
 
-    def train(self, y_train, tx_train, batch_size = -1, verbose = True, tx_validation = None, y_validation = None, store_gradient = False, store_losses = False):
+    def train(self, y_train, tx_train, batch_size = -1, verbose = True, tx_validation = None, y_validation = None, store_gradient = False, store_losses = False, normalize_gradient = False):
         """ 
             Trains the model. It learns a new w with logistic regression. 
             Arguments:
@@ -300,9 +300,20 @@ class ClassifierLogisticRegression(Classifier):
 
         #initiazlie the number of samples
         N = tx_train.shape[0]
+
+        #if the following is set to true, we divide the gradient by the batch_size
+        self.normalize_gradient = normalize_gradient
+
         #initialize the batch size
         if batch_size == -1:
             batch_size = N
+        
+        #handling different regularizers
+        if self.regularizer == None and self.lambda_ != 0.:
+            self.lambda_ = 0.
+            print('Regugarizer = None. Setting Lambda to 0')
+        elif self.regularizer =='L1':
+            raise NotImplementedError('L1 regularizer not implemented yet')
 
         #iterate over the dataset
         for iter in range(self.max_iterations):
@@ -320,7 +331,8 @@ class ClassifierLogisticRegression(Classifier):
                         self.w, 
                         self.gamma, 
                         self.lambda_,
-                        return_gradient = True)
+                        return_gradient = True, 
+                        normalize_gradient = self.normalize_gradient)
                     
                 else:
                     l, self.w = learning_by_gradient_descent(
@@ -328,7 +340,8 @@ class ClassifierLogisticRegression(Classifier):
                         tx_train[b:b+batch_size], 
                         self.w, 
                         self.gamma,
-                        self.lambda_
+                        self.lambda_,
+                        normalize_gradient = self.normalize_gradient
                         )
             
                 #update accumulated loss
@@ -346,7 +359,7 @@ class ClassifierLogisticRegression(Classifier):
 
             #if required, store the norm of the gradient
             if store_gradient:
-                self.stored_gradients += [np.linalg.norm(grad)]
+                self.stored_gradients += [np.linalg.norm(grad)/grad.ravel().shape[0]]
 
             #store the loss over an iteration
             self.losses += [acc_loss]
@@ -359,6 +372,7 @@ class ClassifierLogisticRegression(Classifier):
 
                 #update internal parameters and exit
                 self.params['weights'] = self.w
+                self.params['normalize_gaddient'] = self.normalize_gradient
                 
                 #if accuracies were required:
                 if (tx_validation is not None) and (y_validation is not None):
@@ -376,6 +390,7 @@ class ClassifierLogisticRegression(Classifier):
 
         #end of training: update internal parameters and exit
         self.params['weights'] = self.w
+        self.params['normalize_gaddient'] = self.normalize_gradient
 
         #if required, store losses
         if store_losses:

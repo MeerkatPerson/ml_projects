@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.lib import utils
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # This module contains utils used by the classifiers
@@ -25,23 +26,9 @@ def build_centroids(y, x):
 # mostly ClassifierLogisticRegression-related functions
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def sigmoid(x):
-    """Numerically stable sigmoid function."""
-    try :
-        if x >= 0:
-            z = np.exp(-x)
-            return 1 / (1 + z)
-        else:
-
-            # if x is less than zero then z will be small, denom can't be
-            # zero because it's 1+z.
-            z = np.exp(x)
-            return z / (1 + z)
-    except :
-        print('Error:', x)
-        raise UnicodeTranslateError
-    return x
-
+def sigmoid(t):
+    """Compute the sigmoid function on t."""
+    return 1./ (1+ np.exp(-t))
 
 def der_sigmoid(t):
     """Compute derivtive of sigmoid on t"""
@@ -52,28 +39,56 @@ def mse_loss(y, tx, w, lambda_):
     pred = sigmoid(tx.dot(w)) 
     return ((y - pred)**2).mean() + lambda_ * (w**2).mean()
 
+
 def loglikelihood_loss(y, tx, w, lambda_):
 
-    """compute the loss: negative log likelihood."""
+    '''compute the loss: negative log likelihood.'''
+    epsilon = 1e-10
+
     temp = y.ravel()
-    arg = (tx@w).ravel().astype(np.longdouble)
+    arg = (tx@w).ravel()
     arg = sigmoid(arg)
-    return -((temp*np.log(arg)) + (1.-temp)*np.log( 1. - arg)).sum()
-    ############
+    #print('Sigmoid is ufunc?', type(sigmoid))
+    return -((temp*np.log(epsilon + arg)) + (1.-temp)*np.log( epsilon + 1. - arg)).sum()
 
-    pass
+""""
+def loglikelihood_loss(y, tx, w, lambda_):
+    '''Computes the loss using logistic loss function.
 
-def calculate_gradient(y, x, w, lambda_):
+    Parameters
+    ----------
+    y: numpy array with shape (N,)
+    The vector containing the correct predictions for samples
+    tx: numpy array of numpy arrays with shape (N, D)
+    The feature matrix of features
+    w: numpy array of shape (D,)
+    The current weight vector
+
+    Returns
+    -------
+    mse: float
+    The mean squared error
+    '''
+    epsilon = 1e-10
+
+    y_pred = np.dot(tx, w)
+    return np.sum(np.log(1. + np.exp(y_pred) + epsilon)) - np.dot(y.T, y_pred)
+"""
+
+
+def calculate_gradient(y, x, w, lambda_, normalize_gradient = False):
     """compute the gradient of log_likelihood_loss wrt weights."""
     temp = y.ravel()
     arg = x@w
     s = sigmoid(arg)
+    #print('type s', s.dtype)
     gradient = x.T@(s - temp)
-    #gradient = 1/x.shape[0]
+    if normalize_gradient:
+        gradient = gradient/x.shape[0]
     return gradient + 2 * lambda_ * w
 
 
-def learning_by_gradient_descent(y, tx, w, gamma, lambda_, return_gradient = False):
+def learning_by_gradient_descent(y, tx, w, gamma, lambda_, return_gradient = False, normalize_gradient = False):
     """
     Performs one step of gradient descent using logistic regression.
     Arguments:
@@ -89,10 +104,12 @@ def learning_by_gradient_descent(y, tx, w, gamma, lambda_, return_gradient = Fal
     TODO: add the possibility to return a gradient usng regularizers
     """
     w = w.ravel()
-    grad = calculate_gradient(y, tx, w, lambda_)
+    grad = calculate_gradient(y, tx, w, lambda_, normalize_gradient)
+    #print('dtype grad', grad.dtype, 'dtype gamma', type(gamma))
     w -= gamma*grad
-    loss = mse_loss(y, tx, w, lambda_)
-    #loss = loglikelihood_loss(y, tx, w, lambda_)
+    #print(w)
+    #loss = mse_loss(y, tx, w, lambda_)
+    loss = loglikelihood_loss(y, tx, w, lambda_)
     
     #if required, return also the gradient
     if return_gradient:
@@ -110,3 +127,11 @@ def build_k_indices(y, k_fold, seed):
     k_indices = [indices[k * interval: (k + 1) * interval]
                  for k in range(k_fold)]
     return np.array(k_indices)
+
+
+
+implementations:
+    def f():
+        
+utils
+    def custom_f():
