@@ -6,12 +6,9 @@ import numpy as np
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def standardize(x):
-    """Standardize the original data set."""
-    mean_x = np.mean(x)
-    x = x - mean_x
-    std_x = np.std(x)
-    x = x / std_x
-    return x, mean_x, std_x
+  """Standardize the original data set."""
+  standardized = ( x - x.mean(axis = 0) )/x.std(axis = 0)
+  return standardized, x.mean(axis = 0), x.std(axis = 0)
 
     
 
@@ -97,6 +94,25 @@ def kernel(x, centroid):
 # ------------------------------------------------------------------------------------------------------------------
 # (b) POLYNOMIAL EXTENSION
 # ------------------------------------------------------------------------------------------------------------------
+
+def build_poly_and_standardize(x_train_u, x_test_u, degree):
+    '''Uses build poly standard to build polynomial from NON-STANDARDIZED data.
+    Returns the output
+    '''
+
+    #expand the features using the non-standardized data
+    x_train_e = build_poly_standard(x_train_u, degree)
+    x_test_e = build_poly_standard(x_test_u, degree)
+
+    #standardize the data
+    temp, _, _ = standardize(x_train_e[:, 1:])
+    x_train_e = np.concatenate(( x_train_e[:, 0].reshape(-1, 1), temp ), axis = 1)
+
+    temp, _, _ = standardize(x_test_e[:, 1:])
+    x_test_e = np.concatenate(( x_test_e[:, 0].reshape(-1, 1), temp ), axis = 1)
+
+    return x_train_e, x_test_e
+
 
 def build_poly_standard(x, degree):
     """

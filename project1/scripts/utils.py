@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.lib import utils
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # This module contains utils used by the classifiers
@@ -73,7 +72,7 @@ def loglikelihood_loss(y, tx, w, lambda_):
 
     y_pred = np.dot(tx, w)
     return np.sum(np.log(1. + np.exp(y_pred) + epsilon)) - np.dot(y.T, y_pred)
-"""
+    """
 
 
 def calculate_gradient(y, x, w, lambda_, normalize_gradient = False):
@@ -108,8 +107,8 @@ def learning_by_gradient_descent(y, tx, w, gamma, lambda_, return_gradient = Fal
     #print('dtype grad', grad.dtype, 'dtype gamma', type(gamma))
     w -= gamma*grad
     #print(w)
-    #loss = mse_loss(y, tx, w, lambda_)
-    loss = loglikelihood_loss(y, tx, w, lambda_)
+    loss = mse_loss(y, tx, w, lambda_)
+    #loss = loglikelihood_loss(y, tx, w, lambda_)
     
     #if required, return also the gradient
     if return_gradient:
@@ -130,8 +129,4 @@ def build_k_indices(y, k_fold, seed):
 
 
 
-implementations:
-    def f():
-        
-utils
-    def custom_f():
+

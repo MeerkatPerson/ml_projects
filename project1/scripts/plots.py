@@ -94,6 +94,7 @@ def training_plots(clf, show_gradient = False):
     if show_gradient:
         fig = plt.figure()
         plt.plot(clf.params['stored_gradients'])
+        plt.yscale('log')
         plt.ylabel('norm of the gradients (log-scale)')
         plt.xlabel('Iteration')
         plt.title('Norm of gradients')

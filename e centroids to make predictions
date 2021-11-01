@@ -1,0 +1,119 @@
+* [33mcommit 5d3c7f4f04630c5543f1b7b0879191f29dfc901a[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+[31m|[m Author: MeerkatPerson <t.tratzmueller@outlook.de>
+[31m|[m Date:   Sun Oct 24 12:27:19 2021 +0200
+[31m|[m 
+[31m|[m     ...
+[31m|[m   
+*   [33mcommit 1b5d5c4e36cdabd66d57f15887af717e36849435[m
+[32m|[m[33m\[m  Merge: 6ac3f9d b590e29
+[32m|[m [33m|[m Author: MeerkatPerson <t.tratzmueller@outlook.de>
+[32m|[m [33m|[m Date:   Sun Oct 24 12:26:11 2021 +0200
+[32m|[m [33m|[m 
+[32m|[m [33m|[m     Merge branch 'main' of github.com:MeerkatPerson/ml_projects into main
+[32m|[m [33m|[m     
+[32m|[m [33m|[m     trying to get rid of the large data sets ...
+[32m|[m [33m|[m 
+[32m|[m * [33mcommit b590e29d9edec49993d88e89bbf5e3fddbe7a023[m
+[32m|[m [33m|[m Author: GiovaMoroder <61437943+GiovaMoroder@users.noreply.github.com>
+[32m|[m [33m|[m Date:   Sun Oct 17 13:24:14 2021 +0200
+[32m|[m [33m|[m 
+[32m|[m [33m|[m     implementations
+[32m|[m [33m|[m 
+[32m|[m * [33mcommit fea2ed114373c8c2137b9aabdfd4fcdbc4bdfd82[m
+[32m|[m [33m|[m Author: GiovaMoroder <61437943+GiovaMoroder@users.noreply.github.com>
+[32m|[m [33m|[m Date:   Sun Oct 17 12:58:13 2021 +0200
+[32m|[m [33m|[m 
+[32m|[m [33m|[m     Polynomial features-nd commit attempt
+[32m|[m [33m|[m 
+[32m|[m * [33mcommit e28e7b213437542fc52af00b43426866e0a55c6d[m
+[32m|[m [33m|[m Author: MeerkatPerson <t.tratzmueller@outlook.de>
+[32m|[m [33m|[m Date:   Sat Oct 16 18:43:59 2021 +0200
+[32m|[m [33m|[m 
+[32m|[m [33m|[m     added functionality for building a random polynomial feature matrix
+[32m|[m [33m|[m 
+[32m|[m * [33mcommit 748e79b53115c531a21f1ff1befd6a3f61aaebfc[m
+[32m|[m [33m|[m Author: GiovaMoroder <61437943+GiovaMoroder@users.noreply.github.com>
+[32m|[m [33m|[m Date:   Sat Oct 16 12:08:31 2021 +0200
+[32m|[m [33m|[m 
+[32m|[m [33m|[m     polynomial features
+[32m|[m [33m|[m 
+[32m|[m * [33mcommit c9cdf0c585126711696ef8dc3a34a449ed93b61e[m
+[32m|[m [33m|[m Author: GiovaMoroder <61437943+GiovaMoroder@users.noreply.github.com>
+[32m|[m [33m|[m Date:   Sat Oct 16 10:09:47 2021 +0200
+[32m|[m [33m|[m 
+[32m|[m [33m|[m     Updated Exploratory data analysis - added stuff.ipynb
+[32m|[m [33m|[m 
+[32m|[m * [33mcommit 848ae85077ba9791330f6331939026adf6ea01ae[m
+[32m|[m [33m|[m Author: GiovaMoroder <61437943+GiovaMoroder@users.noreply.github.com>
+[32m|[m [33m|[m Date:   Fri Oct 15 12:08:27 2021 +0200
+[32m|[m [33m|[m 
+[32m|[m [33m|[m     Exploratory analysis
+[32m|[m [33m|[m 
+* [33m|[m [33mcommit 6ac3f9db9a7aab1352aa046276e254d9ce75b38f[m
+[33m|[m [33m|[m Author: MeerkatPerson <t.tratzmueller@outlook.de>
+[33m|[m [33m|[m Date:   Sun Oct 24 12:25:22 2021 +0200
+[33m|[m [33m|[m 
+[33m|[m [33m|[m     getting rid of accidentially added large files
+[33m|[m [33m|[m   
+* [33m|[m   [33mcommit 320822501ce2051759ba8457e6beddc0337d0552[m
+[34m|[m[35m\[m [33m\[m  Merge: c14aa8b 4bd1146
+[34m|[m [35m|[m [33m|[m Author: MeerkatPerson <t.tratzmueller@outlook.de>
+[34m|[m [35m|[m [33m|[m Date:   Sun Oct 24 12:17:00 2021 +0200
+[34m|[m [35m|[m [33m|[m 
+[34m|[m [35m|[m [33m|[m     Merge branch 'main' of github.com:MeerkatPerson/ml_projects into main
+[34m|[m [35m|[m [33m|[m     
+[34m|[m [35m|[m [33m|[m     Troubles with overly large files (i.e., the dataset)
+[34m|[m [35m|[m [33m|[m 
+* [35m|[m [33m|[m [33mcommit c14aa8bc935e29da82c4f269ecaa4287d73d8ac4[m
+[35m|[m [35m|[m [33m|[m Author: MeerkatPerson <t.tratzmueller@outlook.de>
+[35m|[m [35m|[m [33m|[m Date:   Sun Oct 24 12:08:56 2021 +0200
+[35m|[m [35m|[m [33m|[m 
+[35m|[m [35m|[m [33m|[m     restructure, everything that was in Ali's latest version of Preprocessing is now in scripts/preprocessing_helpers and notebooks/Predicting.ipynb
+[35m|[m [35m|[m [33m|[m 
+* [35m|[m [33m|[m [33mcommit 2e3844e36a2d710872772a6a17d7b23b67c4be77[m
+[35m|[m[35m/[m [33m/[m  Author: MeerkatPerson <t.tratzmueller@outlook.de>
+[35m|[m [33m|[m   Date:   Sun Oct 24 10:58:32 2021 +0200
+[35m|[m [33m|[m   
+[35m|[m [33m|[m       updated directory structure, added Preprocessing notebook
+[35m|[m [33m|[m 
+* [33m|[m [33mcommit 4bd11467229ee810f443d01682935c7204c526e1[m
+[35m|[m [33m|[m Author: GiovaMoroder <61437943+GiovaMoroder@users.noreply.github.com>
+[35m|[m [33m|[m Date:   Sun Oct 17 13:24:14 2021 +0200
+[35m|[m [33m|[m 
+[35m|[m [33m|[m     implementations
+[35m|[m [33m|[m 
+* [33m|[m [33mcommit 8be6d6fd0065163a1477eaec2f57d16eee652018[m
+[35m|[m [33m|[m Author: GiovaMoroder <61437943+GiovaMoroder@users.noreply.github.com>
+[35m|[m [33m|[m Date:   Sun Oct 17 12:58:13 2021 +0200
+[35m|[m [33m|[m 
+[35m|[m [33m|[m     Polynomial features-nd commit attempt
+[35m|[m [33m|[m 
+* [33m|[m [33mcommit 89b105f3e3529d54eda1b2236c2d1a31fb1380ad[m
+[35m|[m [33m|[m Author: MeerkatPerson <t.tratzmueller@outlook.de>
+[35m|[m [33m|[m Date:   Sat Oct 16 18:43:59 2021 +0200
+[35m|[m [33m|[m 
+[35m|[m [33m|[m     added functionality for building a random polynomial feature matrix
+[35m|[m [33m|[m 
+* [33m|[m [33mcommit de5fbd7b9995a4d61acd58856ba1f06b4f5271f2[m
+[35m|[m [33m|[m Author: GiovaMoroder <61437943+GiovaMoroder@users.noreply.github.com>
+[35m|[m [33m|[m Date:   Sat Oct 16 12:08:31 2021 +0200
+[35m|[m [33m|[m 
+[35m|[m [33m|[m     polynomial features
+[35m|[m [33m|[m 
+* [33m|[m [33mcommit 49341d04a678c6ede1b0250e8903aedf2cfb2569[m
+[35m|[m [33m|[m Author: GiovaMoroder <61437943+GiovaMoroder@users.noreply.github.com>
+[35m|[m [33m|[m Date:   Sat Oct 16 10:09:47 2021 +0200
+[35m|[m [33m|[m 
+[35m|[m [33m|[m     Updated Exploratory data analysis - added stuff.ipynb
+[35m|[m [33m|[m 
+* [33m|[m [33mcommit d6b1e237c4c5f2b9b0cd20a14b1f012479e70386[m
+[33m|[m[33m/[m  Author: GiovaMoroder <61437943+GiovaMoroder@users.noreply.github.com>
+[33m|[m   Date:   Fri Oct 15 12:08:27 2021 +0200
+[33m|[m   
+[33m|[m       Exploratory analysis
+[33m|[m 
+* [33mcommit a84307941dc36f8f458fd964f856f9907707b254[m
+  Author: MeerkatPerson <t.tratzmueller@outlook.de>
+  Date:   Mon Oct 11 16:31:25 2021 +0200
+  
+      initial commit (template)
