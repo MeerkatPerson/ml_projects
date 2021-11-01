@@ -422,3 +422,84 @@ class ClassifierLogisticRegression(Classifier):
         pred = sigmoid(x.dot(self.w)) 
         pred = np.rint(pred)
         return pred
+
+
+
+##################################################################################################
+
+class ClassifierRandomRidgeRegression(Classifier):
+
+    def __init__(self, n_classifier, lambda_, number_of_rows, features_per_classifier, use_centroids=True):
+        self.lambda_= lambda_
+        self.n_classifier = n_classifier
+        self.number_of_rows = number_of_rows
+        self.features_per_classifier = features_per_classifier
+        self.clf = []
+        self.features = [] # Each classifier will have random features. We choose them in the train function. Then we need them for our predictions.
+        self.use_centroids = use_centroids
+
+        self.params = dict()
+        self.update_params()
+        for i in range(n_classifier):
+            self.clf.append(ClassifierLinearRegression(self.lambda_, "L2"))
+
+
+    def update_params(self):
+        self.params['name'] = 'ClassifierRandomRidgeRegression'
+        self.params['lambda_'] = self.lambda_
+        self.params['number_of_rows'] = self.number_of_rows
+        self.params['n_classifier'] = self.n_classifier
+        self.params['features_per_classifier'] = self.features_per_classifier
+        self.params['use_centroids'] = self.use_centroids
+        
+
+    def train(self, y_train, tx_train, dictionnary):
+        """ 
+            Trains the model. Learns a w with Least Squares. 
+            Arguments:
+                - tx_train: ndarray matrix of size N*D
+                - y_train: ndarray matrix of size D*1
+                - dictionnary : {int : set} linking the initial features to the extended features
+            Hypothesis: tx_train ndd y_train have the same length
+        """        
+
+        
+        for cl in self.clf:
+            perm = np.random.permutation(len(dictionnary)) # shuffle [0..29]
+            perm = perm[:self.features_per_classifier] # Takes first elements [x0, x1]
+            features = set()
+            for ft in perm :
+                features = features.union(dictionnary[ft])
+            features = list(features)
+
+            if self.use_centroids:
+                #Centroids
+                features.append(tx_train.shape[1]-1)
+                features.append(tx_train.shape[1]-2)
+            features.append(0) # Constant term
+            self.features.append(features)
+            perm = np.random.permutation(tx_train.shape[0])
+            perm = perm[:self.number_of_rows]
+            tx = tx_train[perm,]
+            tx = tx[:,features]
+
+            cl.train(y_train[perm], tx)        
+        
+    def predict(self, x):
+        """ 
+            Returns a list of predictions.
+            Argument:
+                - x: a sample vector 1*D 
+            Returns : 
+                Array[int] 
+        """
+        preds = np.empty(x.shape[0])
+
+        for index, cl in enumerate(self.clf) :
+            features = self.features[index]
+            tx = x[:,features]
+            preds = np.vstack((preds,cl.predict(tx)))
+        preds = preds[1:]
+        preds = preds.mean(axis = 0)
+        preds = np.sign(preds)
+        return preds
