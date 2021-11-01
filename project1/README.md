@@ -44,3 +44,8 @@ Thereafter, we proceeded to assess which higher-order terms (i.e., interactive a
 This classifier uses a lot of parameters so it is long to train and to generate predictions. Instead of performing a grid search, we manually selected some parameters to build a reference model and evaluated each of them by splitting the data in 70% for the training set and 30% for the validation set. We then tried to modify each parameter to observe the effect on the accuracy. 
 
 Overall, Random Ridge Regression Classifier performed better than logistic regression. We chose this model for our final prediction with a polynomial extension of degree 9, 50000 rows per classifier, all the features and 10 classifiers. It reached an accuracy of 82.8% with a F1 score of 74.2. This result is very close to what we obtained in our validation steps. As a reference, the best we could have with a single ridge regression model was 82.1%.
+
+# Run script
+
+You need numpy on your machine.
+Go to the script folder and launch run.py.
