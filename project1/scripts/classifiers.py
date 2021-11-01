@@ -455,14 +455,15 @@ class ClassifierRandomRidgeRegression(Classifier):
 
     def train(self, y_train, tx_train, dictionnary):
         """ 
-            Trains the model. Learns a w with Least Squares. 
+            Trains the model. Learns a w with Ridge Regrzession. 
             Arguments:
                 - tx_train: ndarray matrix of size N*D
                 - y_train: ndarray matrix of size D*1
                 - dictionnary : {int : set} linking the initial features to the extended features
             Hypothesis: tx_train ndd y_train have the same length
         """        
-
+        
+        #np.random.seed(seed)
         
         for cl in self.clf:
             perm = np.random.permutation(len(dictionnary)) # shuffle [0..29]
@@ -494,12 +495,12 @@ class ClassifierRandomRidgeRegression(Classifier):
                 Array[int] 
         """
         preds = np.empty(x.shape[0])
+        w = np.zeros(x.shape[1])
 
         for index, cl in enumerate(self.clf) :
             features = self.features[index]
-            tx = x[:,features]
-            preds = np.vstack((preds,cl.predict(tx)))
-        preds = preds[1:]
-        preds = preds.mean(axis = 0)
-        preds = np.sign(preds)
+            for i in range(len(features)):
+              w[features[i]] += cl.w[i]
+        preds = np.sign(x.dot(w))
+        preds = np.array([-1 if x == 0 else x for x in preds])
         return preds
