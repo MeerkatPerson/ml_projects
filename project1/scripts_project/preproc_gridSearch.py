@@ -97,21 +97,11 @@ class PreProc_GridSearch:
 
         # (3) Set up arrays in which the results of the k-fold will be stored
 
-        # Log Reg
-
         acc_tr_logreg = []
         acc_te_logreg = []
 
         losses_tr_logreg = []
         losses_te_logreg = []
-
-        # Ridge Reg
-
-        acc_tr_ridgreg = []
-        acc_te_ridgreg = []
-
-        losses_tr_ridgreg = []
-        losses_te_ridgreg = []
 
         for k in range(k_fold):
 
@@ -144,14 +134,10 @@ class PreProc_GridSearch:
             # (5) Compute clf
 
             clf = ClassifierLogisticRegression(lambda_ = 0, regularizer = None, gamma= 0.01, max_iterations = 1000, min_max_iterations = 100,w_sampling_distr = 'normal', threshold = 0)
-            
-            clr = ClassifierLinearRegression(lambda_ = 0.01, regularizer = 'L2')
 
             # Batch size now -1, which results in batch_size = N, as using k-fold
 
             clf.train(y_train = y_train_k, tx_train = x_train_k, batch_size = 50000, verbose = True, tx_validation = x_test_k, y_validation = y_test_k, store_gradient=False)
-
-            clr.train(y_train = y_train_k, tx_train = x_train_k)
 
             # Append logreg results
 
@@ -163,17 +149,7 @@ class PreProc_GridSearch:
 
             losses_te_logreg.append(mse_loss(y_test_k, x_test_k, clf.w, clf.lambda_))
 
-            # Append ridgreg results
-
-            acc_tr_ridgreg.append( (clr.predict(x_train_k) == y_train_k).mean() )
-
-            acc_te_ridgreg.append( (clr.predict(x_test_k) == y_test_k).mean() )
-
-            losses_tr_ridgreg.append(compute_mse(y_train_k, x_train_k, clr.w))
-
-            losses_te_ridgreg.append(compute_mse(y_test_k, x_test_k, clr.w))
-
-        return sum(acc_tr_logreg)/(len(acc_tr_logreg)), sum(acc_te_logreg)/(len(acc_te_logreg)), sum(losses_tr_logreg)/(len(losses_tr_logreg)), sum(losses_te_logreg)/(len(losses_te_logreg)), sum(acc_tr_ridgreg)/(len(acc_tr_ridgreg)), sum(acc_te_ridgreg)/(len(acc_te_ridgreg)), sum(losses_tr_ridgreg)/(len(losses_tr_ridgreg)), sum(losses_te_ridgreg)/(len(losses_te_ridgreg))
+        return sum(acc_tr_logreg)/(len(acc_tr_logreg)), sum(acc_te_logreg)/(len(acc_te_logreg)), sum(losses_tr_logreg)/(len(losses_tr_logreg)), sum(losses_te_logreg)/(len(losses_te_logreg))
 
     # Worker function, i.e. the function that will be performed by each process
 
@@ -181,28 +157,22 @@ class PreProc_GridSearch:
 
         nan_treatment, standardize = tuple_
 
-        #try: 
+        try: 
 
-        print("Worker starting to compute model!")
+            print("Worker starting to compute model!")
 
-        acc_tr_logreg, acc_te_logreg, losses_tr_logreg, losses_te_logreg, acc_tr_ridgreg, acc_te_ridgreg, losses_tr_ridgreg, losses_te_ridgreg  = self.train_model(nan_treatment, standardize)
-        
-        print(f'LogReg: nan_treatment: {nan_treatment}, standardize: {standardize}, acc_tr: {acc_tr_logreg}, acc_te: {acc_te_logreg}, losses_tr: {losses_tr_logreg}, losses_te: {losses_te_logreg}')
-        
-        print(f'RidgReg: nan_treatment: {nan_treatment}, standardize: {standardize}, acc_tr: {acc_tr_ridgreg}, acc_te: {acc_te_ridgreg}, losses_tr: {losses_tr_ridgreg}, losses_te: {losses_te_ridgreg}')
-
-        return ({"nan_treatment": nan_treatment, "standardize": standardize, "acc_tr_logreg": acc_tr_logreg, "acc_te_logreg": acc_te_logreg, "losses_tr_logreg": losses_tr_logreg, "losses_te_ridgreg": losses_te_ridgreg, "acc_tr_ridgreg": acc_tr_ridgreg, "acc_te_ridgreg": acc_te_ridgreg, "losses_tr_ridgreg": losses_tr_ridgreg, "losses_te_ridgreg": losses_te_ridgreg})
-
-        '''
-        
+            acc_tr_logreg, acc_te_logreg, losses_tr_logreg, losses_te_logreg  = self.train_model(nan_treatment, standardize)
+            
+            print(f'LogReg: nan_treatment: {nan_treatment}, standardize: {standardize}, acc_tr: {acc_tr_logreg}, acc_te: {acc_te_logreg}, losses_tr: {losses_tr_logreg}, losses_te: {losses_te_logreg}')
+            
+            return ({"nan_treatment": nan_treatment, "standardize": standardize, "acc_tr_logreg": acc_tr_logreg, "acc_te_logreg": acc_te_logreg, "losses_tr_logreg": losses_tr_logreg, "losses_te_logreg": losses_te_logreg})
+            
         except: 
 
             print("Error computing model!")
 
             print(f'Error occurred with: nan_treatment: {nan_treatment}, standardize: {standardize}')
             return ({"nan_treatment": nan_treatment, "standardize": standardize, "acc_tr": 'unknown', "acc_te": 'unknown', "losses_tr": 'unknown', "losses_te": 'unknown'})
-
-        '''
 
 if __name__ == '__main__':
 
