@@ -1,8 +1,112 @@
 import numpy as np
+from preprocessing import standardize
+
+from collections import defaultdict
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # This module contains methods to make feature extentions
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+
+# ------------------------------------------------------------------------------------------------------------------
+# (a) CENTROIDS & KERNEL
+# ------------------------------------------------------------------------------------------------------------------
+
+def build_centroids(y, x):
+    res = []
+    for cl in set(y):
+      res.append((cl, np.mean(x[y==cl], axis = 0)))
+    return res
+    # [centroid class -1, centroid class 1]
+
+def kernel(x, centroid):
+    return np.exp(-np.linalg.norm(x-centroid, axis = 1)**2)
+
+# ------------------------------------------------------------------------------------------------------------------
+# (b) POLYNOMIAL EXTENSION
+# ------------------------------------------------------------------------------------------------------------------
+
+def build_poly_and_standardize(x_train_u, x_test_u, degree):
+    '''Uses build poly standard to build polynomial from NON-STANDARDIZED data.
+    Returns the output
+    '''
+
+    #expand the features using the non-standardized data
+    x_train_e = build_poly_standard(x_train_u, degree)
+    x_test_e = build_poly_standard(x_test_u, degree)
+
+    #standardize the data
+    temp, _, _ = standardize(x_train_e[:, 1:])
+    x_train_e = np.concatenate(( x_train_e[:, 0].reshape(-1, 1), temp ), axis = 1)
+
+    temp, _, _ = standardize(x_test_e[:, 1:])
+    x_test_e = np.concatenate(( x_test_e[:, 0].reshape(-1, 1), temp ), axis = 1)
+
+    return x_train_e, x_test_e
+
+
+def build_poly_standard(x, degree):
+    """
+    Build polynomial up to a given degree without interacting terms"""
+    #build the constant terms
+    expanded = np.ones_like(x[:, 0]).reshape(-1, 1)
+    expanded = np.concatenate((expanded, x), axis = 1)
+
+    #if degree smaller than 2 return
+    if degree <2:
+        return expanded
+    #otherwise expand the features
+    else:
+        for d in range(2, degree +1):
+            expanded = np.concatenate(
+                (expanded, x**d), axis = 1
+            )
+        return expanded
+
+def build_poly_interaction(x, degree, functions, centroids, initial_features = 30):
+    """
+    Polynomial basis functions for input data x, for j=0 up to j=degree. 
+    Applies a list of functions to each columns and builds interaction terms. 
+    Adds the kernel function between x[i] and the centroid of each class.
+    Params :
+        - x : N*D after one hot encoding
+        - degree : int
+        - functions : List[functions] of size K
+        - centroids : J*D (in this project J = 2)
+        - initial_features : number of features before one hot encoding. It is used to avoid
+        duplicating columns.
+    Returns :
+        extended x with size N * (1 + D*(degree+K+J) + D(D-1)/2)
+    """
+    d = defaultdict(set)
+    res = np.ones((len(x), 1))
+    column = 0
+    for i in range(x.shape[1]):
+        if i < initial_features:
+            for deg in range(1, degree+1):
+                res = np.column_stack((res, np.float_power(x[:, i], deg))) # x1^2, x1^3...x1^degree
+                column += 1
+                d[i].add(column)
+        for f in functions:
+            res = np.column_stack((res, f(x[:, i]))) # 1/x1, x1^1/3
+            column += 1
+            d[i].add(column)
+        for j in range(i+1, x.shape[1]):
+            res = np.column_stack((res, x[:,i] * x[:,j])) # x1,x2,x3 -> x1*x2, x2*x3, x1*x3
+            column += 1
+            d[i].add(column)
+            d[j].add(column)
+        
+    for c in centroids:
+        res = np.column_stack((res, kernel(x,c)))
+
+    return res, d
+
+###################################################################################
+# General code to get interactive terms of any degree
+####################################################################################
+
 
 def gen_new_features(x, exp):
     """

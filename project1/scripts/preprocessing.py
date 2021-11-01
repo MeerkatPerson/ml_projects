@@ -10,9 +10,29 @@ def standardize(x):
   standardized = ( x - x.mean(axis = 0) )/x.std(axis = 0)
   return standardized, x.mean(axis = 0), x.std(axis = 0)
 
-    
 
-def preprocess(y, tx, nan_strategy, standardize_=True, outliers = False):
+def one_hot_encoding(tx_train):
+  """
+      For each columns of tx_train which has a NaN, generates an array L where
+      L[i] = 1 if tx_train[i] is a NaN else 0.
+      Param : 
+        - tx_train : N*D 
+      Hypothesis :
+        - A NaN in tx_train is a value less than -998.
+      
+  """
+  NANVAL = -998.
+  tx = tx_train
+  tx = np.where(tx < NANVAL, np.NaN, tx)
+  res = np.empty((tx.shape[0],1))
+  for i in range(tx.shape[1]):
+    tmp = np.isnan(tx[:, i])
+    if tmp.any():
+      res = np.column_stack((res, tmp))
+  return res[:, 1:]
+
+
+def preprocess(y, tx, nan_strategy, standardize_=True,  onehotencoding=False, outliers = False):
   """
   Do the preprocessing of the data.
   Argument:
@@ -25,13 +45,13 @@ def preprocess(y, tx, nan_strategy, standardize_=True, outliers = False):
           4. 'RemoveNanFeatures' removes the columns with NaNs
           5. 'NanTo0', replaces the NaNs with 0
       - standardize: standardizes the data
-      - outliers TODO
+      - onehotencoding : onehotencodes the data
   Returns : 
       -(res_y, res_x) : tuple of processed data
   """
   NANVAL = -998
   
-  #TODO : outliers
+ 
   res_x = tx
   res_y = y
   res_x = np.where(res_x < NANVAL, np.NaN, res_x)
@@ -64,104 +84,10 @@ def preprocess(y, tx, nan_strategy, standardize_=True, outliers = False):
   else:
     raise Error('specify a correct strategy')
 
-
-  if outliers : 
-    #TODO remove outliers
-    pass
   if standardize_: 
     res_x, _, _ = standardize(res_x)
+  if onehotencoding:
+    res_x = np.column_stack((res_x, one_hot_encoding(tx)))
   return res_y, res_x
 
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# F U N C T I O N S  R E L A T E D  T O  F E A T U R E  E X T E N S I O N
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-# ------------------------------------------------------------------------------------------------------------------
-# (a) CENTROIDS & KERNEL
-# ------------------------------------------------------------------------------------------------------------------
-
-def build_centroids(y, x):
-    res = []
-    for cl in set(y):
-      res.append((cl, np.mean(x[y==cl], axis = 0)))
-    return res
-    # [centroid class -1, centroid class 1]
-
-def kernel(x, centroid):
-    return np.exp(-np.linalg.norm(x-centroid, axis = 1)**2)
-
-# ------------------------------------------------------------------------------------------------------------------
-# (b) POLYNOMIAL EXTENSION
-# ------------------------------------------------------------------------------------------------------------------
-
-def build_poly_and_standardize(x_train_u, x_test_u, degree):
-    '''Uses build poly standard to build polynomial from NON-STANDARDIZED data.
-    Returns the output
-    '''
-
-    #expand the features using the non-standardized data
-    x_train_e = build_poly_standard(x_train_u, degree)
-    x_test_e = build_poly_standard(x_test_u, degree)
-
-    #standardize the data
-    temp, _, _ = standardize(x_train_e[:, 1:])
-    x_train_e = np.concatenate(( x_train_e[:, 0].reshape(-1, 1), temp ), axis = 1)
-
-    temp, _, _ = standardize(x_test_e[:, 1:])
-    x_test_e = np.concatenate(( x_test_e[:, 0].reshape(-1, 1), temp ), axis = 1)
-
-    return x_train_e, x_test_e
-
-
-def build_poly_standard(x, degree):
-    """
-    Build polynomial up to a given degree without interacting terms"""
-    #build the constant terms
-    expanded = np.ones_like(x[:, 0]).reshape(-1, 1)
-    expanded = np.concatenate((expanded, x), axis = 1)
-
-    #if degree smaller than 2 return
-    if degree <2:
-        return expanded
-    #otherwise expand the features
-    else:
-        for d in range(2, degree +1):
-            expanded = np.concatenate(
-                (expanded, x**d), axis = 1
-            )
-        return expanded
-
-def build_poly(x, degree, functions, centroids):
-    """polynomial basis functions for input data x, for j=0 up to j=degree.
-        also applies functions
-    """
-    poly = np.ones((len(x), 1))
-
-    for i in range(x.shape[1]):
-        for deg in range(1, degree+1):
-            poly = np.c_[poly, np.power(x[:, i], deg)]
-        for f in functions:
-            poly = np.c_[poly, f(x[:, i])]
-    for c in centroids:
-        poly = np.c_[poly, kernel(x,c)]
-
-    return poly
-
-def build_poly_interaction(x, degree, functions, centroids):
-    """polynomial basis functions for input data x, for j=0 up to j=degree.
-        also applies functions
-    """
-    poly = np.ones((len(x), 1))
-    for i in range(x.shape[1]):
-        for deg in range(1, degree+1):
-            poly = np.c_[poly, np.power(x[:, i], deg)]
-        for f in functions:
-            poly = np.c_[poly, f(x[:, i])]
-        for j in range(i+1, x.shape[1]):
-            poly = np.c_[poly, x[:,i] * x[:,j]]
-            
-    for c in centroids:
-        poly = np.c_[poly, kernel(x,c)]
-
-    return poly
